@@ -1,6 +1,6 @@
 ﻿# 프로그램명: 바이트 계산 패드
 # 설명: 바이트 계산 기능이 있는 간단한 메모 프로그램
-# 날짜: 2024. 8. 8.
+# 날짜: 2025. 7.27.
 
 # -*- coding: utf-8 -*-
 
@@ -75,7 +75,7 @@ class Notepad(tk.Tk):
         # 문자 변환 메뉴 항목 추가
         self.edit_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Edit", menu=self.edit_menu)
-        self.edit_menu.add_command(label="Convert to Smart Quotes", command=self.auto_replace, accelerator="Ctrl+T")
+        self.edit_menu.add_command(label="Convert to Smart Quotes", command=self.auto_replace, accelerator="Alt+T")
         self.edit_menu.add_command(label="Select All and Copy", command=self.select_all_and_copy, accelerator="Alt+C")
 
         # 폰트 메뉴 추가
@@ -93,7 +93,7 @@ class Notepad(tk.Tk):
         self.bind("<Control-s>", lambda event: self.save_file())
         self.bind("<Control-S>", lambda event: self.save_as_file())
         self.bind("<Control-q>", lambda event: self.quit())
-        self.bind("<Control-t>", lambda event: self.auto_replace())
+        self.bind("<Alt-t>", lambda event: self.auto_replace())
         self.bind("<Alt-c>", lambda event: self.select_all_and_copy())
         self.bind("<Control-Up>", lambda event: self.increase_font_size())
         self.bind("<Control-Down>", lambda event: self.decrease_font_size())
@@ -161,29 +161,36 @@ class Notepad(tk.Tk):
             self.text_area.edit_modified(False)
 
     def auto_replace(self, event=None):
-        # 1. 커서 위치 저장
+        # 커서 위치 저장
         cursor_pos = self.text_area.index(tk.INSERT)
 
-        # 2. 텍스트 전체를 trailing newline 제외한 형태로 가져오기
-        text_content = self.text_area.get("1.0", "end-1c")
-
-        # 3. 스마트/커스티 따옴표 → ASCII 따옴표 변환
+        # 스마트 따옴표 → 일반 따옴표 매핑
         replacements = {
             "‘": "'", "’": "'",
             "“": '"', "”": '"',
             "´": "'", "˝": '"'
         }
+
         for old, new in replacements.items():
-            text_content = text_content.replace(old, new)
+            start = "1.0"
+            while True:
+                # old 문자열 검색
+                pos = self.text_area.search(old, start, stopindex="end")
+                if not pos:
+                    break
+                end = f"{pos}+{len(old)}c"
+                self.text_area.delete(pos, end)
+                self.text_area.insert(pos, new)
+                start = end  # 다음 검색 위치 갱신
 
-        # 4. 원본과 같은 범위만 지우고 새로 삽입
-        self.text_area.delete("1.0", "end-1c")
-        self.text_area.insert("1.0", text_content)
-
-        # 5. 커서 복원, 수정 플래그 및 상태표시줄 갱신
-        self.text_area.mark_set(tk.INSERT, cursor_pos)
+        # 수정 플래그 설정 및 상태 갱신
         self.is_modified = True
         self.update_status_bar()
+
+        # 커서 위치 복원
+        self.text_area.mark_set(tk.INSERT, cursor_pos)
+
+
 
     def increase_font_size(self):
         current_size = self.default_font['size']
